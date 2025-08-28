@@ -1,0 +1,58 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace et2.software
+{
+    public class Purchase
+    {
+        public string Person { get; set; }
+        public string Item { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // Sample data
+            List<Purchase> purchases = new List<Purchase>
+            {
+                new Purchase { Person = "nandana", Item = "Laptop", Price = 800 },
+                new Purchase { Person = "sukanya", Item = "Phone", Price = 500 },
+                new Purchase { Person = "naina", Item = "Headphones", Price = 150 },
+                new Purchase { Person = "sapana", Item = "Tablet", Price = 300 },
+                new Purchase { Person = "piyush", Item = "Charger", Price = 50 }
+            };
+
+            // 1. Get purchases where price > 200
+            var expensiveItems = from p in purchases
+                                 where p.Price > 200
+                                 select p;
+
+            Console.WriteLine("Purchases with price > 200:");
+            foreach (var item in expensiveItems)
+            {
+                Console.WriteLine($"{item.Person} bought {item.Item} for {item.Price}");
+            }
+
+            Console.WriteLine("\n");
+
+            // 2. Group purchases by person
+            var groupedByPerson = from p in purchases
+                                  group p by p.Person into g
+                                  select new
+                                  {
+                                      Person = g.Key,
+                                      TotalSpent = g.Sum(x => x.Price),
+                                      Items = g.Select(x => x.Item)
+                                  };
+
+            Console.WriteLine("Total spent by each person:");
+            foreach (var group in groupedByPerson)
+            {
+                Console.WriteLine($"{group.Person} spent {group.TotalSpent} on: {string.Join(", ", group.Items)}");
+            }
+        }
+    }
+}
