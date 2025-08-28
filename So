@@ -1,0 +1,29 @@
+using Microsoft.AspNetCore.Mvc;
+using et2.software.Models;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace et2.software.Controllers
+{
+    public class T23C3Controller : Controller
+    {
+        public IActionResult Index()
+        {
+            // Sample data
+            List<Purchase> purchases = new List<Purchase>
+            {
+                new Purchase { Person = "nandana", Item = "Laptop", Price = 800 },
+                new Purchase { Person = "sukanya", Item = "Phone", Price = 500 },
+                new Purchase { Person = "naina", Item = "Headphones", Price = 150 },
+                new Purchase { Person = "sapana", Item = "Tablet", Price = 300 },
+                new Purchase { Person = "piyush", Item = "Charger", Price = 50 }
+            };
+
+            // Example LINQ Query: expensive items only
+            var expensiveItems = purchases.Where(p => p.Price > 200).ToList();
+
+            // Pass data to View as model
+            return View(expensiveItems);
+        }
+    }
+}
