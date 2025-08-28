@@ -1,0 +1,66 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public class Purchase
+{
+    public string Person { get; set; }
+    public string Item { get; set; }
+    public decimal Price { get; set; }
+}
+
+class Program
+{
+    static void Main()
+    {
+        // Sample data
+        List<Purchase> purchases = new List<Purchase>
+        {
+            new Purchase { Person = "Alice", Item = "Laptop", Price = 800 },
+            new Purchase { Person = "Bob", Item = "Phone", Price = 500 },
+            new Purchase { Person = "Alice", Item = "Headphones", Price = 150 },
+            new Purchase { Person = "Charlie", Item = "Tablet", Price = 300 },
+            new Purchase { Person = "Bob", Item = "Charger", Price = 50 }
+        };
+
+        // 1. Get all purchases where price > 200
+        var expensiveItems = from p in purchases
+                             where p.Price > 200
+                             select p;
+
+        Console.WriteLine("Purchases with price > 200:");
+        foreach (var item in expensiveItems)
+        {
+            Console.WriteLine($"{item.Person} bought {item.Item} for {item.Price}");
+        }
+
+        Console.WriteLine("\n");
+
+        // 2. Group purchases by person
+        var groupedByPerson = from p in purchases
+                              group p by p.Person into g
+                              select new
+                              {
+                                  Person = g.Key,
+                                  TotalSpent = g.Sum(x => x.Price),
+                                  Items = g.Select(x => x.Item)
+                              };
+
+        Console.WriteLine("Total spent by each person:");
+        foreach (var group in groupedByPerson)
+        {
+            Console.WriteLine($"{group.Person} spent {group.TotalSpent} on: {string.Join(", ", group.Items)}");
+        }
+
+        Console.WriteLine("\n");
+
+        // 3. Order items by price descending
+        var orderedItems = purchases.OrderByDescending(p => p.Price);
+
+        Console.WriteLine("Items ordered by price (descending):");
+        foreach (var item in orderedItems)
+        {
+            Console.WriteLine($"{item.Item} - {item.Price}");
+        }
+    }
+}
