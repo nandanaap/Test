@@ -1,0 +1,22 @@
+<img src="~/images/download.jpg" width="200" height="120" 
+     data-name="Machine A" 
+     onclick="getMachineInfo(event)" />
+
+<div id="infoBox"></div>
+
+<script>
+function getMachineInfo(event) {
+    var img = event.target;
+    var etid = img.getAttribute("data-name");
+
+    fetch('/t23c2_application/action_view?e00_etid=' + etid, {
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("infoBox").innerHTML = 
+            "<p><strong>Machine Name:</strong> " + data.name + "</p>" +
+            "<p><strong>Status:</strong> " + data.status + "</p>";
+    });
+}
+</script>
