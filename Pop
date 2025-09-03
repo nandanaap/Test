@@ -1,0 +1,34 @@
+<!-- Content for the first card -->
+<div class="card-header text-center etc-header c1" 
+     onclick="openModal('Nandana', 'Application Interface', 'Running')"
+     style="cursor:pointer;">
+    Nandana
+</div>
+<div class="card-body etc-card" style="border:2px solid green;">
+    <input type="text" id="vil_text1" value="nandana" readonly />
+    <input type="text" id="vil_text2" value="application interface" readonly />
+    <input type="text" id="vil_text3" value="Running" readonly style="color:green;" />
+</div>
+<script>
+function openModal(username, project, status) {
+    document.getElementById("modalTitle").innerText = "Details for " + username;
+    document.getElementById("modalContent").innerHTML =
+        "<b>Username:</b> " + username + "<br>" +
+        "<b>Project:</b> " + project + "<br>" +
+        "<b>Status:</b> " + status;
+
+    document.getElementById("myModal").style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById("myModal").style.display = "none";
+}
+
+// Close when clicking outside
+window.onclick = function(event) {
+    var modal = document.getElementById("myModal");
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+</script>
