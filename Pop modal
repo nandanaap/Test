@@ -1,0 +1,8 @@
+<!-- Modal -->
+<div id="myModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close-button" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle">User Details</h2>
+        <p id="modalContent">This is the content of the pop-up window.</p>
+    </div>
+</div>
