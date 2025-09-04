@@ -1,0 +1,29 @@
+public void pickfirst()
+{
+    ms_username = new List<string> { "Nandana", "Sukanya" };
+    ms_project  = new List<string> { "application interface", "application interface" };
+    ms_status   = new List<string> { "Status: Running", "Status: Running" };
+
+    // Count how many are Running
+    int runningCount = ms_status.Count(s => s.Contains("Running"));
+
+    ms_text1 = new List<string>();
+    ms_text2 = new List<string>();
+    ms_text3 = new List<string>();
+
+    // Fill your text lists (if needed)
+    for (int i = 0; i < ms_username.Count; i++)
+    {
+        ms_text1.Add("username: " + ms_username[i]);
+        ms_text2.Add("project: " + ms_project[i]);
+        ms_text3.Add(ms_status[i]);
+    }
+
+    // Summary section
+    ms_summary = new List<string>
+    {
+        "Users: " + runningCount,
+        "project: application interface, project: creators",
+        "Status: Active"
+    };
+}
