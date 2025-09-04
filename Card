@@ -1,0 +1,53 @@
+<script>
+function openModal(username, project, status) {
+    // fill form fields
+    document.getElementById("modalUsername").value = username;
+    document.getElementById("modalProject").value = project;
+    document.getElementById("modalStatus").value = status;
+
+    document.getElementById("myModal").style.display = "block";
+}
+
+function closeModal() {
+    document.getElementById("myModal").style.display = "none";
+}
+
+function saveDetails() {
+    // get edited values
+    let username = document.getElementById("modalUsername").value;
+    let project = document.getElementById("modalProject").value;
+    let status = document.getElementById("modalStatus").value;
+
+    // ✅ Update card values (example for Nandana)
+    document.getElementById("cardUsername").innerText = username;
+    document.getElementById("cardProject").innerText = project;
+    document.getElementById("cardStatus").innerText = status;
+
+    closeModal();
+}
+</script>
+<!-- Modal -->
+<div id="myModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close-button" onclick="closeModal()">&times;</span>
+        <h2>User Details</h2>
+        
+        <form id="userForm">
+            <label><b>Username:</b></label>
+            <input type="text" id="modalUsername" class="form-control"><br>
+
+            <label><b>Project:</b></label>
+            <input type="text" id="modalProject" class="form-control"><br>
+
+            <label><b>Status:</b></label>
+            <input type="text" id="modalStatus" class="form-control"><br>
+
+            <button type="button" onclick="saveDetails()">Save</button>
+        </form>
+    </div>
+</div>
+<div class="card-body etc-card" onclick="openModal('Nandana', 'Application Interface', 'Running')">
+    <p><b>Username:</b> <span id="cardUsername">Nandana</span></p>
+    <p><b>Project:</b> <span id="cardProject">Application Interface</span></p>
+    <p><b>Status:</b> <span id="cardStatus">Running</span></p>
+</div>
