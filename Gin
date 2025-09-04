@@ -1,0 +1,25 @@
+<div class="card" 
+     style="height:175px; cursor:pointer; background-image:url('/download.jpg'); background-size:cover;"
+     onclick="openModal(this)"
+     data-username="@ms_username"
+     data-project="@ms_project"
+     data-status="@ms_status">
+
+    <div class="card-header text-center etc-header">Nandana</div>
+    <div class="card-body">
+        <!-- Card content -->
+    </div>
+</div>
+function openModal(card) {
+    var username = card.getAttribute("data-username");
+    var project = card.getAttribute("data-project");
+    var status = card.getAttribute("data-status");
+
+    document.getElementById("modalTitle").innerText = "Details for " + username;
+    document.getElementById("modalContent").innerHTML =
+        "<b>Username:</b> " + username + "<br>" +
+        "<b>Project:</b> " + project + "<br>" +
+        "<b>Status:</b> " + status;
+
+    $('#myModal').modal('show');
+}
