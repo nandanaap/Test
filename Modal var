@@ -1,0 +1,17 @@
+@for (int i = 0; i < Model.ms_username.Count; i++)
+{
+    <div class="card" onclick="openModal(@i)">
+        <div class="card-body">
+            <h5>@Model.ms_username[i]</h5>
+            <p>@Model.ms_project[i]</p>
+            <span>@Model.ms_status[i]</span>
+        </div>
+    </div>
+}
+
+
+<script>
+    var ms_username = @Html.Raw(Json.Serialize(Model.ms_username));
+    var ms_project = @Html.Raw(Json.Serialize(Model.ms_project));
+    var ms_status = @Html.Raw(Json.Serialize(Model.ms_status));
+</script>
