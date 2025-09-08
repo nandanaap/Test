@@ -1,0 +1,213 @@
+// Global variable to handle click timing
+let clickTimeout = null;
+let clickCount = 0;
+
+// Combined click handler for single vs double click
+function handleCardClick(usernameId, projectId, statusId, event) {
+    clickCount++;
+    
+    if (clickCount === 1) {
+        // Start timer for single click
+        clickTimeout = setTimeout(function() {
+            // Single click action - open modal
+            openModal(usernameId, projectId, statusId);
+            clickCount = 0;
+        }, 300); // 300ms delay to detect double click
+    } else if (clickCount === 2) {
+        // Double click detected - clear single click timer
+        clearTimeout(clickTimeout);
+        
+        // Double click action - change input text
+        changeCardData(usernameId, projectId, statusId);
+        clickCount = 0;
+    }
+}
+
+// Alternative approach using separate event handlers
+function setupCardEventHandlers(cardElement, usernameId, projectId, statusId) {
+    let singleClickTimer = null;
+    
+    cardElement.addEventListener('click', function(event) {
+        // Clear any existing timer
+        if (singleClickTimer) {
+            clearTimeout(singleClickTimer);
+            singleClickTimer = null;
+            return; // This was part of a double-click, so ignore
+        }
+        
+        // Set timer for single click
+        singleClickTimer = setTimeout(function() {
+            // Single click - open modal
+            openModal(usernameId, projectId, statusId);
+            singleClickTimer = null;
+        }, 300);
+    });
+    
+    cardElement.addEventListener('dblclick', function(event) {
+        // Clear single click timer
+        if (singleClickTimer) {
+            clearTimeout(singleClickTimer);
+            singleClickTimer = null;
+        }
+        
+        // Double click - change text
+        changeCardData(usernameId, projectId, statusId);
+        
+        // Prevent text selection on double click
+        event.preventDefault();
+    });
+}
+
+// Your existing openModal function
+function openModal(usernameId, projectId, statusId) {
+    var username = document.getElementById(usernameId).value;
+    var project = document.getElementById(projectId).value;
+    var status = document.getElementById(statusId).value;
+    
+    // Update modal content with current values
+    document.getElementById("modalTitle").innerHTML = "Details for " + username;
+    document.getElementById("modalContent").innerHTML = 
+        "<b>Username:</b> " + username + "<br>" +
+        "<b>Project:</b> " + project + "<br>" + 
+        "<b>Status:</b> " + status;
+    
+    // Show modal
+    $('#myModal').modal('show');
+    
+    return {
+        username: username,
+        project: project,
+        status: status
+    };
+}
+
+// Text change functions for double click
+function changeCardData(usernameId, projectId, statusId) {
+    changeFieldText(usernameId, 'username');
+    changeFieldText(projectId, 'project');
+    changeFieldText(statusId, 'status');
+}
+
+function changeFieldText(inputId, fieldType) {
+    const input = document.getElementById(inputId);
+    
+    switch(fieldType) {
+        case 'username':
+            const usernames = ['John Doe', 'Jane Smith', 'Admin User', 'Guest User', 'Manager'];
+            const randomUsername = usernames[Math.floor(Math.random() * usernames.length)];
+            input.value = randomUsername;
+            break;
+            
+        case 'project':
+            const projects = ['Project Alpha', 'Project Beta', 'Project Gamma', 'New Project', 'Web App'];
+            const randomProject = projects[Math.floor(Math.random() * projects.length)];
+            input.value = randomProject;
+            break;
+            
+        case 'status':
+            const statuses = ['Active', 'Inactive', 'Pending', 'Completed'];
+            const currentStatus = input.value;
+            const currentStatusIndex = statuses.indexOf(currentStatus);
+            const nextStatus = statuses[(currentStatusIndex + 1) % statuses.length];
+            input.value = nextStatus;
+            
+            // Update color based on status
+            updateStatusColor(inputId, nextStatus);
+            break;
+    }
+}
+
+function updateStatusColor(inputId, status) {
+    const input = document.getElementById(inputId);
+    
+    switch(status.toLowerCase()) {
+        case 'active':
+            input.style.color = 'green';
+            break;
+        case 'inactive':
+            input.style.color = 'red';
+            break;
+        case 'pending':
+            input.style.color = 'orange';
+            break;
+        case 'completed':
+            input.style.color = 'blue';
+            break;
+        default:
+            input.style.color = 'black';
+    }
+}
+
+// Initialize event handlers when page loads (Alternative approach)
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all cards and set up event handlers
+    const cards = document.querySelectorAll('.card[data-username-id]');
+    
+    cards.forEach(card => {
+        const usernameId = card.dataset.usernameId;
+        const projectId = card.dataset.projectId;
+        const statusId = card.dataset.statusId;
+        
+        setupCardEventHandlers(card, usernameId, projectId, statusId);
+    });
+});
+
+// Advanced version with visual feedback
+function handleCardClickWithFeedback(usernameId, projectId, statusId, event) {
+    const card = event.currentTarget;
+    clickCount++;
+    
+    // Add visual feedback for click
+    card.style.transform = 'scale(0.98)';
+    setTimeout(() => {
+        card.style.transform = 'scale(1)';
+    }, 100);
+    
+    if (clickCount === 1) {
+        // Show single click feedback
+        showClickFeedback(card, 'Single click - Opening modal...');
+        
+        clickTimeout = setTimeout(function() {
+            openModal(usernameId, projectId, statusId);
+            clickCount = 0;
+        }, 300);
+    } else if (clickCount === 2) {
+        clearTimeout(clickTimeout);
+        
+        // Show double click feedback
+        showClickFeedback(card, 'Double click - Changing text...');
+        
+        changeCardData(usernameId, projectId, statusId);
+        clickCount = 0;
+    }
+}
+
+function showClickFeedback(card, message) {
+    // Create feedback element
+    const feedback = document.createElement('div');
+    feedback.textContent = message;
+    feedback.style.cssText = `
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 1000;
+        pointer-events: none;
+    `;
+    
+    // Position card relative for absolute positioning
+    card.style.position = 'relative';
+    card.appendChild(feedback);
+    
+    // Remove feedback after 1 second
+    setTimeout(() => {
+        if (feedback.parentNode) {
+            feedback.parentNode.removeChild(feedback);
+        }
+    }, 1000);
+}
