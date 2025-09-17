@@ -1,0 +1,63 @@
+public List<amsmast> bisf_getmailtype(DateTime pd_date)
+{
+    List<amsmast> lo_amsmasts = new List<amsmast>();
+    dbLib lo_dblib = new dbLib();
+
+    string lc_sql;
+    string lc_period;
+    string lc_spday;
+    string lc_amscode;
+    int li_today;
+    int li_weekday;
+    bool lb_tokeme;
+
+    DataSet lds1;
+
+    li_today = pd_date.Day;
+    li_weekday = (int)pd_date.DayOfWeek;
+
+    lc_sql = "select x471_amscode,x471_period,x471_spday from x471 " +
+             "where x471_mailtype = 'P'";
+
+    lds1 = lo_dblib.appds(lc_sql);
+
+    foreach (DataRow lo_row in lds1.Tables[0].Rows)
+    {
+        lb_tokeme = false;
+
+        lc_period = lo_row["x471_period"].ToString().Trim();
+        lc_spday = lo_row["x471_spday"].ToString().Trim();
+        lc_amscode = lo_row["x471_amscode"].ToString().Trim();
+
+        var spval = lc_spday.Split(',')
+                            .Select(day => int.Parse(day.Trim()))
+                            .ToList();
+
+        if (lc_period == "M")
+        {
+            if (spval.Contains(li_today)) lb_tokeme = true;
+        }
+        else if (lc_period == "W")
+        {
+            if (spval.Contains(li_weekday)) lb_tokeme = true;
+        }
+
+        if (lb_tokeme == false) goto b1sf_next;
+
+        //=== It is checked that the mail has not been sent for the same code today. ===
+        lc_sql = "select * from x473 where " +
+                 "x473_amscode = '" + lc_amscode + "' and " +
+                 "x473_date = '" + pd_date.ToString("dd/MM/yyyy") + "'";
+
+        lds1 = lo_dblib.appds(lc_sql);
+        if (lo_dblib.hasdata(ref lds1) == true) goto b1sf_next;
+
+        amsmast lo_amsmast = new amsmast();
+        lo_amsmast.getcode(lc_amscode);
+        lo_amsmasts.Add(lo_amsmast);
+
+    b1sf_next: ;
+    }
+
+    return lo_amsmasts;
+}
