@@ -1,0 +1,426 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Net;
+using System.Net.Mail;
+
+public class EmailScheduler
+{
+    // Your existing runbatch method
+    public bool runbatch()
+    {
+        bool lb_ret;
+        etmail lo_etmail = new();
+        MailtypeList = b18f_getmailtype(DateTime.Today);
+        
+        foreach (amsmast lo_amsmast in MailtypeList)
+        {
+            lo_etmail.makemail(lo_amsmast.amscode, lo_amsmast.param1, lo_amsmast.param2);
+        }
+        
+        lb_ret = true;
+        return lb_ret;
+    }
+
+    //************
+    //*** b18f_getmailtype : This function will return a collection of amsmast for a given date.
+    //*** Input : Date
+    //*** Output : List of amsmast as a collection.
+    //***
+    //*** Processing Logic : This function collects all amscode where the mail type is set to Auto. It will then
+    //*** try to match the day in monthly or weekly period as specified for ams master.
+    //************
+    public List<amsmast> b18f_getmailtype(DateTime pd_date)
+    {
+        List<amsmast> lo_amsmasts = new();
+        string lc_sql;
+        dblib lo_dblib = new();
+        DataSet lds;
+        string lc_period;
+        string lc_spday;
+        bool lb_takeme;
+        int li_today;
+        int li_weekday;
+        string lc_amscode;
+
+        DataSet lds1;
+        li_today = pd_date.Day;
+        li_weekday = (int)pd_date.DayOfWeek;
+        lc_sql = "select x471_amscode, x471_period, x471_spday from x471 " +
+                 "where x471_mailtype='A' ";
+        lds = lo_dblib.appds(lc_sql);
+        
+        foreach (DataRow lo_row in lds.Tables[0].Rows)
+        {
+            lb_takeme = false;
+            lc_period = lo_row["x471_period"].ToString().Trim();
+            lc_spday = lo_row["x471_spday"].ToString().Trim();
+            lc_amscode = lo_row["x471_amscode"].ToString().Trim();
+            
+            // Parse special days from comma-separated string
+            try
+            {
+                var spval = lc_spday.Split(',').Select(day => int.Parse(day.Trim())).ToList();
+                
+                if (lc_period == "M")
+                {
+                    if (spval.Contains(li_today)) lb_takeme = true;
+                }
+                else if (lc_period == "W")
+                {
+                    if (spval.Contains(li_weekday)) lb_takeme = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error parsing special days for amscode {lc_amscode}: {ex.Message}");
+                goto b18f_next;
+            }
+            
+            if (lb_takeme == false) goto b18f_next;
+
+            //********* 
+            //*** Check if email has already been sent today for this amscode
+            //********* 
+            lc_sql = "Select * from x473 where " +
+                     "( x473_amscode = '" + lc_amscode + "' ) and " +
+                     "( CAST(x473_date AS DATE) = CAST('" + pd_date.ToString("yyyy-MM-dd") + "' AS DATE) )";
+            lds1 = lo_dblib.appds(lc_sql);
+            
+            if (lo_dblib.hasdata(ref lds1) == true)
+            {
+                // Email already sent today for this amscode, skip it
+                Console.WriteLine($"Email already sent today for amscode: {lc_amscode}");
+                goto b18f_next;
+            }
+
+            // Email has not been sent today, proceed to send
+            if (lb_takeme == true)
+            {
+                // Send the email first
+                bool emailSent = SendEmailForAmscode(lc_amscode, pd_date);
+                
+                if (emailSent)
+                {
+                    // Log the email send to x473 table to prevent duplicates
+                    LogEmailSent(lc_amscode, pd_date);
+                    
+                    // Add to the collection
+                    amsmast lo_amsmast = new amsmast();
+                    lo_amsmast.getcode(lc_amscode);
+                    lo_amsmasts.Add(lo_amsmast);
+                    
+                    Console.WriteLine($"Email processed successfully for amscode: {lc_amscode}");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to send email for amscode: {lc_amscode}");
+                }
+            }
+
+            b18f_next:
+            ;
+        }
+        
+        Console.WriteLine($"Total emails processed: {lo_amsmasts.Count}");
+        return lo_amsmasts;
+    }
+
+    private bool SendEmailForAmscode(string amscode, DateTime sentDate)
+    {
+        try
+        {
+            // Get email configuration for this amscode
+            string sql = "SELECT recipient_email, subject, message_body, cc_email, bcc_email FROM email_config WHERE amscode = '" + amscode + "' AND is_active = 1";
+            dblib lo_dblib = new dblib();
+            DataSet emailConfig = lo_dblib.appds(sql);
+            
+            if (!lo_dblib.hasdata(ref emailConfig))
+            {
+                Console.WriteLine($"No email configuration found for amscode: {amscode}");
+                return false;
+            }
+            
+            DataRow emailRow = emailConfig.Tables[0].Rows[0];
+            string recipientEmail = emailRow["recipient_email"].ToString();
+            string subject = emailRow["subject"].ToString();
+            string messageBody = emailRow["message_body"].ToString();
+            string ccEmail = emailRow["cc_email"]?.ToString();
+            string bccEmail = emailRow["bcc_email"]?.ToString();
+            
+            if (string.IsNullOrEmpty(recipientEmail))
+            {
+                Console.WriteLine($"No recipient email found for amscode: {amscode}");
+                return false;
+            }
+            
+            // Send email using SMTP
+            using (SmtpClient smtpClient = new SmtpClient("smtp.gmail.com", 587))
+            {
+                smtpClient.Credentials = new NetworkCredential("your-email@gmail.com", "your-app-password");
+                smtpClient.EnableSsl = true;
+                smtpClient.Timeout = 30000; // 30 seconds timeout
+                
+                using (MailMessage message = new MailMessage())
+                {
+                    message.From = new MailAddress("your-email@gmail.com", "Email Scheduler");
+                    message.To.Add(recipientEmail);
+                    
+                    // Add CC if provided
+                    if (!string.IsNullOrEmpty(ccEmail))
+                    {
+                        message.CC.Add(ccEmail);
+                    }
+                    
+                    // Add BCC if provided
+                    if (!string.IsNullOrEmpty(bccEmail))
+                    {
+                        message.Bcc.Add(bccEmail);
+                    }
+                    
+                    message.Subject = subject;
+                    message.Body = messageBody;
+                    message.IsBodyHtml = false;
+                    
+                    smtpClient.Send(message);
+                    Console.WriteLine($"Email sent successfully to {recipientEmail} for amscode: {amscode}");
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to send email for amscode {amscode}: {ex.Message}");
+            
+            // Log the error to database for tracking
+            try
+            {
+                LogEmailError(amscode, sentDate, ex.Message);
+            }
+            catch (Exception logEx)
+            {
+                Console.WriteLine($"Failed to log email error: {logEx.Message}");
+            }
+            
+            return false;
+        }
+    }
+
+    private void LogEmailSent(string amscode, DateTime sentDate)
+    {
+        try
+        {
+            // Insert record into x473 table to track email sent
+            string sql = "INSERT INTO x473 (x473_amscode, x473_date, x473_status) VALUES ('" + 
+                         amscode + "', '" + sentDate.ToString("yyyy-MM-dd HH:mm:ss") + "', 'SENT')";
+            dblib lo_dblib = new dblib();
+            lo_dblib.runbatch(sql);
+            
+            Console.WriteLine($"Email send logged for amscode: {amscode}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to log email for amscode {amscode}: {ex.Message}");
+        }
+    }
+
+    private void LogEmailError(string amscode, DateTime attemptDate, string errorMessage)
+    {
+        try
+        {
+            // Insert error record into x473 table
+            string sql = "INSERT INTO x473 (x473_amscode, x473_date, x473_status, x473_error) VALUES ('" + 
+                         amscode + "', '" + attemptDate.ToString("yyyy-MM-dd HH:mm:ss") + "', 'ERROR', '" + 
+                         errorMessage.Replace("'", "''") + "')";
+            dblib lo_dblib = new dblib();
+            lo_dblib.runbatch(sql);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to log email error: {ex.Message}");
+        }
+    }
+
+    // Method to get email statistics
+    public DataSet GetEmailStatistics(DateTime fromDate, DateTime toDate)
+    {
+        try
+        {
+            string sql = @"
+                SELECT 
+                    x473_amscode,
+                    COUNT(*) as total_emails,
+                    SUM(CASE WHEN x473_status = 'SENT' THEN 1 ELSE 0 END) as successful_emails,
+                    SUM(CASE WHEN x473_status = 'ERROR' THEN 1 ELSE 0 END) as failed_emails,
+                    MAX(x473_date) as last_email_date
+                FROM x473 
+                WHERE x473_date BETWEEN '" + fromDate.ToString("yyyy-MM-dd") + "' AND '" + toDate.ToString("yyyy-MM-dd") + "'
+                GROUP BY x473_amscode
+                ORDER BY x473_amscode";
+                
+            dblib lo_dblib = new dblib();
+            return lo_dblib.appds(sql);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting email statistics: {ex.Message}");
+            return new DataSet();
+        }
+    }
+
+    // Method to retry failed emails
+    public void RetryFailedEmails(DateTime forDate)
+    {
+        try
+        {
+            string sql = @"
+                SELECT DISTINCT x473_amscode 
+                FROM x473 
+                WHERE CAST(x473_date AS DATE) = CAST('" + forDate.ToString("yyyy-MM-dd") + @"' AS DATE)
+                AND x473_status = 'ERROR'";
+                
+            dblib lo_dblib = new dblib();
+            DataSet failedEmails = lo_dblib.appds(sql);
+            
+            if (lo_dblib.hasdata(ref failedEmails))
+            {
+                Console.WriteLine($"Retrying {failedEmails.Tables[0].Rows.Count} failed emails for {forDate:yyyy-MM-dd}");
+                
+                foreach (DataRow row in failedEmails.Tables[0].Rows)
+                {
+                    string amscode = row["x473_amscode"].ToString();
+                    Console.WriteLine($"Retrying email for amscode: {amscode}");
+                    
+                    bool emailSent = SendEmailForAmscode(amscode, forDate);
+                    if (emailSent)
+                    {
+                        LogEmailSent(amscode, forDate);
+                        Console.WriteLine($"Retry successful for amscode: {amscode}");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"No failed emails found for {forDate:yyyy-MM-dd}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrying failed emails: {ex.Message}");
+        }
+    }
+
+    // Properties
+    public List<amsmast> MailtypeList { get; set; } = new List<amsmast>();
+    public string lib_status { get; set; }
+}
+
+// Supporting classes (assuming these exist in your project)
+public class amsmast
+{
+    public string amscode { get; set; }
+    public string param1 { get; set; }
+    public string param2 { get; set; }
+    
+    public void getcode(string code)
+    {
+        this.amscode = code;
+        // Add your existing getcode logic here
+    }
+}
+
+public class etmail
+{
+    public void makemail(string amscode, string param1, string param2)
+    {
+        // Add your existing makemail logic here
+        Console.WriteLine($"Making mail for amscode: {amscode}");
+    }
+}
+
+public class dblib
+{
+    public DataSet appds(string sql)
+    {
+        // Add your existing database connection logic here
+        // This is a placeholder - replace with your actual implementation
+        DataSet ds = new DataSet();
+        
+        try
+        {
+            using (SqlConnection conn = new SqlConnection("your_connection_string_here"))
+            {
+                using (SqlDataAdapter adapter = new SqlDataAdapter(sql, conn))
+                {
+                    adapter.Fill(ds);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database error: {ex.Message}");
+        }
+        
+        return ds;
+    }
+    
+    public bool hasdata(ref DataSet ds)
+    {
+        return ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0;
+    }
+    
+    public void runbatch(string sql)
+    {
+        try
+        {
+            using (SqlConnection conn = new SqlConnection("your_connection_string_here"))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database error in runbatch: {ex.Message}");
+            throw;
+        }
+    }
+}
+
+/* 
+SQL SCRIPTS TO ENHANCE YOUR EXISTING TABLES:
+
+-- Add status and error columns to x473 table if they don't exist
+ALTER TABLE x473 ADD x473_status VARCHAR(20) DEFAULT 'SENT';
+ALTER TABLE x473 ADD x473_error VARCHAR(500) NULL;
+
+-- Create email_config table if it doesn't exist
+CREATE TABLE email_config (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    amscode VARCHAR(50) NOT NULL,
+    recipient_email VARCHAR(255) NOT NULL,
+    subject VARCHAR(500) NOT NULL,
+    message_body TEXT NOT NULL,
+    cc_email VARCHAR(255) NULL,
+    bcc_email VARCHAR(255) NULL,
+    is_active BIT DEFAULT 1,
+    created_date DATETIME DEFAULT GETDATE(),
+    modified_date DATETIME NULL
+);
+
+-- Sample data for email_config
+INSERT INTO email_config (amscode, recipient_email, subject, message_body)
+VALUES 
+    ('AMS001', 'user1@example.com', 'Monthly Report for AMS001', 'This is your scheduled monthly report.'),
+    ('AMS002', 'user2@example.com', 'Weekly Update for AMS002', 'This is your weekly update.'),
+    ('AMS003', 'user3@example.com', 'Monthly Summary for AMS003', 'This is your monthly summary.');
+
+-- Index for better performance
+CREATE INDEX IX_x473_amscode_date ON x473(x473_amscode, x473_date);
+CREATE INDEX IX_email_config_amscode ON email_config(amscode);
+*/
