@@ -1,0 +1,41 @@
+public bool getlast(string pc_section, string rundate, string pc_shift)
+{
+    try
+    {
+        string lc_sql;
+        DataSet lds;
+        dblib lo_dblib = new();
+        bool lb_answer = true;
+        
+        // Build SQL query to get the last record based on the parameters
+        // Assuming you have a timestamp or ID field to determine "last"
+        lc_sql = "SELECT TOP 1 * FROM x129 WHERE " +
+                 "pc_section = '" + pc_section + "' AND " +
+                 "rundate = '" + rundate + "' AND " +
+                 "pc_shift = '" + pc_shift + "' " +
+                 "ORDER BY id DESC"; // Replace 'id' with your actual ordering field
+        
+        lds = lo_dblib.appds(lc_sql);
+        
+        if (lo_dblib.hasdata(ref lds))
+        {
+            // Record found - you can access the data here
+            // Example: process the retrieved record
+            // DataRow lastRecord = lds.Tables[0].Rows[0];
+            lb_answer = true;
+        }
+        else
+        {
+            // No record found
+            lb_answer = false;
+        }
+        
+        return lb_answer;
+    }
+    catch (Exception ex)
+    {
+        // Handle any database errors
+        // You might want to log the exception
+        return false;
+    }
+}
