@@ -1,0 +1,37 @@
+<div class="row">
+  <div class="eta-label col-md-2">
+    <label id="v3_label5a">status :</label>
+  </div>
+
+  <div class="col-md-4">
+    <div class="form-check">
+      @Html.CheckBoxFor(m => m.StatusPlanned, new { @id = "v3_status_planned", @class = "form-check-input" })
+      <label class="form-check-label" for="v3_status_planned">Planned</label>
+    </div>
+
+    <div class="form-check" style="margin-top:6px;">
+      @Html.CheckBoxFor(m => m.StatusAbandoned, new { @id = "v3_status_abandoned", @class = "form-check-input" })
+      <label class="form-check-label" for="v3_status_abandoned">Abandoned</label>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="eta-label col-md-2">
+    <label id="v3_label5a">status :</label>
+  </div>
+
+  <div class="col-md-4">
+    <div class="form-check">
+      <input id="v3_status_planned" name="status" type="checkbox" class="form-check-input"
+             value="Planned" />
+      <label class="form-check-label" for="v3_status_planned">Planned</label>
+    </div>
+
+    <div class="form-check" style="margin-top:6px;">
+      <input id="v3_status_abandoned" name="status" type="checkbox" class="form-check-input"
+             value="Abandoned" />
+      <label class="form-check-label" for="v3_status_abandoned">Abandoned</label>
+    </div>
+  </div>
+</div>
