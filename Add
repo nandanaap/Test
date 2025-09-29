@@ -1,0 +1,3 @@
+lc_sql = "SELECT * FROM x129 WHERE x129_section = '" + lc_section + 
+         "' AND x129_rundate = '" + lc_rundate + 
+         "' AND x129_shift = '" + lc_shift + "'";
