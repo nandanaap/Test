@@ -1,0 +1,1 @@
+lc_sql = "SELECT x129_section, x129_secsrl, x129_status FROM x129 WHERE x129_section = '" + pc_section + "' ORDER BY x129_secsrl DESC LIMIT 1";
